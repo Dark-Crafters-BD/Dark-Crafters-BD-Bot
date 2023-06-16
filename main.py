@@ -701,7 +701,7 @@ async def createQuiz(
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
             await interaction.response.defer(ephemeral=True)
-            if str(self.db['data']['correct']).lower() != "a" and:
+            if str(self.db['data']['correct']).lower() != "a":
                 await self.wrong(interaction.user.id)
                 await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
