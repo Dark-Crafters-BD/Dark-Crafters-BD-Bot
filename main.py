@@ -194,6 +194,8 @@ def PERSISTENT():
             bot.add_view(UporDownVotePERSISTENT(), message_id=msgID)
     except TypeError:
         pass
+    except  KeyError:
+        pass
 
     class QuizSubmitBTNPERSISTENT(discord.ui.View):
         def __init__(self):
@@ -271,6 +273,8 @@ def PERSISTENT():
         msgID = int(str(QUIZWHOLEDB['data']['id']))
         bot.add_view(QuizSubmitBTNPERSISTENT(), message_id=msgID)
     except TypeError:
+        pass
+    except  KeyError:
         pass
 # ------------------------- PERSISTENT: END -------------------------
 
