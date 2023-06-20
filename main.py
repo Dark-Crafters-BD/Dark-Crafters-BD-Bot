@@ -12,28 +12,10 @@ import firebase_admin
 from firebase_admin import credentials, db
 
 
-# VARIABLES
-SUBMIT_CHANNEL_ID = 915567338126974976
-POINT_PER_CORRECT = 3
-POINT_DEDUCT_PER_WRONG = 1
-RULES_MESSAGE_LINK = "https://discord.com/channels/797125529031016448/1105012708052574268/1119165124293427201"
-QUIZ_PING_ROLE_ID = 1117758291313963149
-QUIZ_MOD_ROLE_ID = 1117729292923719721
-
-
-load_dotenv()
-AUTHORIZATION_CODES = os.getenv("AUTHORIZATION_CODES").split(", ")
-__KEY__ = os.getenv("FIREBASE_KEY")
-
 bot = commands.AutoShardedBot(command_prefix="~",
                               intents=discord.Intents(guilds=True, members=True, messages=True, message_content=True))
 bot.remove_command('help')
 tree = bot.tree
-cred = credentials.Certificate(json.loads(__KEY__))
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://dark-crafters-bd-default-rtdb.firebaseio.com/'
-})
-ref = db.reference()
 
 # ------------------------- VARIABLES: START -------------------------
 
@@ -41,8 +23,27 @@ SUGGESTION_CHANNEL = 1105144058977980510
 REPORT_CHANNEL = 1105144082382205020
 LOG_CHANNEL = 1105147469152669806
 BOT_DEV_ROLE = 1014572791183441931
+POINT_PER_CORRECT = 3
+POINT_DEDUCT_PER_WRONG = 1
+RULES_MESSAGE_LINK = "https://discord.com/channels/797125529031016448/1105012708052574268/1119165124293427201"
+QUIZ_PING_ROLE_ID = 1117758291313963149
+QUIZ_MOD_ROLE_ID = 1117729292923719721
+
+load_dotenv()
+AUTHORIZATION_CODES = os.getenv("AUTHORIZATION_CODES").split(", ")
+__KEY__ = os.getenv("FIREBASE_KEY")
 
 # ------------------------- VARIABLES: END -------------------------
+
+# ------------------------- DATABASE: START -------------------------
+
+cred = credentials.Certificate(json.loads(__KEY__))
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://dark-crafters-bd-default-rtdb.firebaseio.com/'
+})
+ref = db.reference()
+
+# ------------------------- DATABASE: END -------------------------
 
 # ------------------------- FUNCTION: START -------------------------
 
@@ -67,6 +68,7 @@ def PERSISTENT():
             SuggestionDB = ref.get()['Suggestions'][SuggestionID]
             ischanged = False
             isedit = False
+            f = await interaction.followup.send(content="Wait a second while we process...")
             if "Upvoters" in SuggestionDB and str(interaction.user.id) in SuggestionDB['Upvoters']:
                 pass
             elif "Downvoters" in SuggestionDB and str(interaction.user.id) in SuggestionDB['Downvoters']:
@@ -97,17 +99,17 @@ def PERSISTENT():
                                       value=count_value,
                                       inline=False)
                 embed.remove_field(1)
-                if (up_vote_count + 1) == down_vote_count:
+                if up_vote_count == down_vote_count:
                     embed.insert_field_at(index=1,
                                           name=embed.fields[1].name,
                                           value="```\nTied```\n", inline=False)
                     embed.remove_field(2)
-                elif (up_vote_count + 1) > down_vote_count:
+                elif up_vote_count > down_vote_count:
                     embed.insert_field_at(index=1,
                                           name=embed.fields[1].name,
                                           value="```\nMajority of Upvotes\n```", inline=False)
                     embed.remove_field(2)
-                elif (up_vote_count + 1) < down_vote_count:
+                elif up_vote_count < down_vote_count:
                     embed.insert_field_at(index=1,
                                           name=embed.fields[1].name,
                                           value="```\nMajority of Downvotes\n```", inline=False)
@@ -115,12 +117,11 @@ def PERSISTENT():
 
                 await interaction.response.edit_message(embed=embed)
             if ischanged:
-                await interaction.followup.send(
-                    "Your vote has been changed from Downvote to Upvote!\n\nThanks for your vote! Your vote helps us to take decisions!",
-                    ephemeral=True)
+                await f.edit(
+                    content="Your vote has been changed from Downvote to Upvote!\n\nThanks for your vote! Your vote helps us to take decisions!")
             else:
-                await interaction.followup.send("Thanks for your vote! Your vote helps us to take decisions!",
-                                                ephemeral=True)
+                await f.edit(
+                    content="Thanks for your vote! Your vote helps us to take decisions!")
             await sendLog(interaction.user.id, interaction.created_at, "Suggestion Voted",
                           f"Upvote to [Suggestion {SuggestionID}]({SuggestionDB['Suggestion Message URL']})\n**Current Statistics**\n{count_value}")
 
@@ -131,6 +132,7 @@ def PERSISTENT():
             SuggestionDB = ref.get()['Suggestions'][SuggestionID]
             ischanged = False
             isedit = False
+            f = await interaction.followup.send(content="Wait a second while we process...")
             if "Downvoters" in SuggestionDB and str(interaction.user.id) in SuggestionDB['Downvoters']:
                 pass
             elif "Upvoters" in SuggestionDB and str(interaction.user.id) in SuggestionDB['Upvoters']:
@@ -159,17 +161,17 @@ def PERSISTENT():
                                       value=count_value,
                                       inline=False)
                 embed.remove_field(1)
-                if up_vote_count == (down_vote_count + 1):
+                if up_vote_count == down_vote_count:
                     embed.insert_field_at(index=1,
                                           name=embed.fields[1].name,
                                           value="```\nTied\n```", inline=False)
                     embed.remove_field(2)
-                elif up_vote_count > (down_vote_count + 1):
+                elif up_vote_count > down_vote_count:
                     embed.insert_field_at(index=1,
                                           name=embed.fields[1].name,
                                           value="```\nMajority of Upvotes\n```", inline=False)
                     embed.remove_field(2)
-                elif up_vote_count < (down_vote_count + 1):
+                elif up_vote_count < down_vote_count:
                     embed.insert_field_at(index=1,
                                           name=embed.fields[1].name,
                                           value="```\nMajority of Downvotes\n```", inline=False)
@@ -177,12 +179,11 @@ def PERSISTENT():
 
                 await interaction.response.edit_message(embed=embed)
             if ischanged:
-                await interaction.followup.send(
-                    "Your vote has been changed from Upvote to Downvote!\n\nThanks for your vote! Your vote helps us to take decisions!",
-                    ephemeral=True)
+                await f.edit(
+                    content="Your vote has been changed from Upvote to Downvote!\n\nThanks for your vote! Your vote helps us to take decisions!")
             else:
-                await interaction.followup.send("Thanks for your vote! Your vote helps us to take decisions!",
-                                                ephemeral=True)
+                await f.edit(
+                    content="Thanks for your vote! Your vote helps us to take decisions!")
             await sendLog(interaction.user.id, interaction.created_at, "Suggestion Voted",
                           f"Downvote to [Suggestion {SuggestionID}]({SuggestionDB['Suggestion Message URL']})\n**Current Statistics**\n{count_value}")
 
@@ -218,56 +219,52 @@ def PERSISTENT():
                 'Current Quiz'] and str(interaction.user.id) in ref.get()['Current Quiz']['Submitters']:
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.send_message("Submitting your Answer...", ephemeral=True)
             if str(self.db['data']['correct']).lower() != "a":
                 await self.wrong(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
                 await self.correct(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
         @discord.ui.button(label="B", style=discord.ButtonStyle.blurple)
         async def B(self, interaction: discord.Interaction, button: discord.ui.Button):
             if ref.get() is not None and 'Current Quiz' in ref.get() and 'Submitters' in ref.get()[
                 'Current Quiz'] and str(interaction.user.id) in ref.get()['Current Quiz']['Submitters']:
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.send_message("Submitting your Answer...", ephemeral=True)
             if str(self.db['data']['correct']).lower() != "b":
                 await self.wrong(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
                 await self.correct(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
         @discord.ui.button(label="C", style=discord.ButtonStyle.blurple)
         async def C(self, interaction: discord.Interaction, button: discord.ui.Button):
             if ref.get() is not None and 'Current Quiz' in ref.get() and 'Submitters' in ref.get()[
                 'Current Quiz'] and str(interaction.user.id) in ref.get()['Current Quiz']['Submitters']:
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.send_message("Submitting your Answer...", ephemeral=True)
             if str(self.db['data']['correct']).lower() != "c":
                 await self.wrong(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
                 await self.correct(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
         @discord.ui.button(label="D", style=discord.ButtonStyle.blurple)
         async def D(self, interaction: discord.Interaction, button: discord.ui.Button):
             if ref.get() is not None and 'Current Quiz' in ref.get() and 'Submitters' in ref.get()[
                 'Current Quiz'] and str(interaction.user.id) in ref.get()['Current Quiz']['Submitters']:
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.send_message("Submitting your Answer...", ephemeral=True)
             if str(self.db['data']['correct']).lower() != "d":
                 await self.wrong(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
                 await self.correct(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
     try:
         QUIZWHOLEDB = ref.get()['Current Quiz']
         msgID = int(str(QUIZWHOLEDB['data']['id']))
@@ -291,6 +288,7 @@ class UporDownVote(discord.ui.View):
         SuggestionDB = ref.get()['Suggestions'][SuggestionID]
         ischanged = False
         isedit = False
+        f = await interaction.followup.send(content="Wait a second while we process...")
         if "Upvoters" in SuggestionDB and str(interaction.user.id) in SuggestionDB['Upvoters']:
             pass
         elif "Downvoters" in SuggestionDB and str(interaction.user.id) in SuggestionDB['Downvoters']:
@@ -320,17 +318,17 @@ class UporDownVote(discord.ui.View):
                                   value=count_value,
                                   inline=False)
             embed.remove_field(1)
-            if (up_vote_count + 1) == down_vote_count:
+            if up_vote_count == down_vote_count:
                 embed.insert_field_at(index=1,
                                       name=embed.fields[1].name,
                                       value="```\nTied```\n", inline=False)
                 embed.remove_field(2)
-            elif (up_vote_count + 1) > down_vote_count:
+            elif up_vote_count > down_vote_count:
                 embed.insert_field_at(index=1,
                                       name=embed.fields[1].name,
                                       value="```\nMajority of Upvotes\n```", inline=False)
                 embed.remove_field(2)
-            elif (up_vote_count + 1) < down_vote_count:
+            elif up_vote_count < down_vote_count:
                 embed.insert_field_at(index=1,
                                       name=embed.fields[1].name,
                                       value="```\nMajority of Downvotes\n```", inline=False)
@@ -338,9 +336,9 @@ class UporDownVote(discord.ui.View):
 
             await interaction.response.edit_message(embed=embed)
         if ischanged:
-            await interaction.followup.send("Your vote has been changed from Downvote to Upvote!\n\nThanks for your vote! Your vote helps us to take decisions!", ephemeral=True)
+            await f.edit(content="Your vote has been changed from Downvote to Upvote!\n\nThanks for your vote! Your vote helps us to take decisions!", ephemeral=True)
         else:
-            await interaction.followup.send("Thanks for your vote! Your vote helps us to take decisions!", ephemeral=True)
+            await f.edit(content="Thanks for your vote! Your vote helps us to take decisions!", ephemeral=True)
         await sendLog(interaction.user.id, interaction.created_at, "Suggestion Voted", f"Upvote to [Suggestion {SuggestionID}]({SuggestionDB['Suggestion Message URL']})\n**Current Statistics**\n{count_value}")
 
     @discord.ui.button(label='Downvote', style=discord.ButtonStyle.red, emoji="⬇️", custom_id="vote_down")
@@ -350,6 +348,7 @@ class UporDownVote(discord.ui.View):
         SuggestionDB = ref.get()['Suggestions'][SuggestionID]
         ischanged = False
         isedit = False
+        f = await interaction.followup.send(content="Wait a second while we process...")
         if "Downvoters" in SuggestionDB and str(interaction.user.id) in SuggestionDB['Downvoters']:
             pass
         elif "Upvoters" in SuggestionDB and str(interaction.user.id) in SuggestionDB['Upvoters']:
@@ -378,17 +377,17 @@ class UporDownVote(discord.ui.View):
                                   value=count_value,
                                   inline=False)
             embed.remove_field(1)
-            if up_vote_count == (down_vote_count + 1):
+            if up_vote_count == down_vote_count:
                 embed.insert_field_at(index=1,
                                       name=embed.fields[1].name,
                                       value="```\nTied\n```", inline=False)
                 embed.remove_field(2)
-            elif up_vote_count > (down_vote_count + 1):
+            elif up_vote_count > down_vote_count:
                 embed.insert_field_at(index=1,
                                       name=embed.fields[1].name,
                                       value="```\nMajority of Upvotes\n```", inline=False)
                 embed.remove_field(2)
-            elif up_vote_count < (down_vote_count + 1):
+            elif up_vote_count < down_vote_count:
                 embed.insert_field_at(index=1,
                                       name=embed.fields[1].name,
                                       value="```\nMajority of Downvotes\n```", inline=False)
@@ -396,9 +395,9 @@ class UporDownVote(discord.ui.View):
 
             await interaction.response.edit_message(embed=embed)
         if ischanged:
-            await interaction.followup.send("Your vote has been changed from Upvote to Downvote!\n\nThanks for your vote! Your vote helps us to take decisions!", ephemeral=True)
+            await f.edit(content="Your vote has been changed from Upvote to Downvote!\n\nThanks for your vote! Your vote helps us to take decisions!", ephemeral=True)
         else:
-            await interaction.followup.send("Thanks for your vote! Your vote helps us to take decisions!", ephemeral=True)
+            await f.edit(content="Thanks for your vote! Your vote helps us to take decisions!", ephemeral=True)
         await sendLog(interaction.user.id, interaction.created_at, "Suggestion Voted", f"Downvote to [Suggestion {SuggestionID}]({SuggestionDB['Suggestion Message URL']})\n**Current Statistics**\n{count_value}")
 
 
@@ -704,14 +703,13 @@ async def createQuiz(
                 'Current Quiz'] and str(interaction.user.id) in ref.get()['Current Quiz']['Submitters']:
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.send_message("Submitting your Answer...", ephemeral=True)
             if str(self.db['data']['correct']).lower() != "a":
                 await self.wrong(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
                 await self.correct(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
 
         @discord.ui.button(label="B", style=discord.ButtonStyle.blurple)
         async def B(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -719,43 +717,39 @@ async def createQuiz(
                 'Current Quiz'] and str(interaction.user.id) in ref.get()['Current Quiz']['Submitters']:
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.send_message("Submitting your Answer...", ephemeral=True)
             if str(self.db['data']['correct']).lower() != "b":
                 await self.wrong(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
                 await self.correct(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
         @discord.ui.button(label="C", style=discord.ButtonStyle.blurple)
         async def C(self, interaction: discord.Interaction, button: discord.ui.Button):
             if ref.get() is not None and 'Current Quiz' in ref.get() and 'Submitters' in ref.get()[
                 'Current Quiz'] and str(interaction.user.id) in ref.get()['Current Quiz']['Submitters']:
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.send_message("Submitting your Answer...", ephemeral=True)
             if str(self.db['data']['correct']).lower() != "c":
                 await self.wrong(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
                 await self.correct(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
         @discord.ui.button(label="D", style=discord.ButtonStyle.blurple)
         async def D(self, interaction: discord.Interaction, button: discord.ui.Button):
             if ref.get() is not None and 'Current Quiz' in ref.get() and 'Submitters' in ref.get()[
                 'Current Quiz'] and str(interaction.user.id) in ref.get()['Current Quiz']['Submitters']:
                 await interaction.response.send_message("You've already submitted once!", ephemeral=True)
                 return
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.send_message("Submitting your Answer...", ephemeral=True)
             if str(self.db['data']['correct']).lower() != "d":
                 await self.wrong(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
             else:
                 await self.correct(interaction.user.id)
-                await interaction.followup.send(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
-
+                await interaction.edit_original_response(content="Thanks for your Submission!\n\nYour Points will be added if you're correct!")
     class Confirm(discord.ui.View):
         def __init__(self, user_id, description, opt1, opt2, opt3, opt4, color, correct):
             self.InteractionUser = user_id
